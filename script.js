@@ -1,93 +1,92 @@
-// Initialize and add the map
+let map;
+let markers = [];
+
 function initMap() {
-  // The location of center
-  const center = { lat: 51.5074, lng: -0.1278 };
-  // The map, centered at center
-  const map = new google.maps.Map(document.getElementById("map"), {
+  map = new google.maps.Map(document.getElementById("map"), {
+    center: { lat: 51.5074, lng: -0.1278 },
     zoom: 12,
-    center: center,
   });
 
-  // Add markers to the map
-  fetch('data.js')
-    .then(response => response.json())
-    .then(data => {
-      data.forEach(marker => {
-        const markerPos = { lat: marker.lat, lng: marker.lng };
-        const markerIcon = {
-          url: "https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png",
-          size: new google.maps.Size(20, 32),
-          origin: new google.maps.Point(0, 0),
-          anchor: new google.maps.Point(0, 32),
-        };
-        const newMarker = new google.maps.Marker({
-          position: markerPos,
-          map: map,
-          icon: markerIcon,
-          title: marker.text,
-        });
-        // Add listener for marker click
-        newMarker.addListener("click", () => {
-          const contentString =
-            "<div id='overlay'>" +
-            "<img class='overlay-image' src='images/" +
-            marker.image1 +
-            "'/><img class='overlay-image' src='images/" +
-            marker.image2 +
-            "'/></div>";
-          const infowindow = new google.maps.InfoWindow({
-            content: contentString,
-            maxWidth: 400,
-          });
-          infowindow.open(map, newMarker);
-          const slider = document.querySelector("#overlay");
-          let isDown = false;
-          let startX;
-          let scrollLeft;
-          let cursor = "default";
-          slider.addEventListener("mousedown", (e) => {
-            isDown = true;
-            startX = e.pageX - slider.offsetLeft;
-            scrollLeft = slider.scrollLeft;
-            cursor = "grabbing";
-            slider.style.cursor = cursor;
-          });
-          slider.addEventListener("mouseleave", () => {
-            isDown = false;
-            cursor = "default";
-            slider.style.cursor = cursor;
-          });
-          slider.addEventListener("mouseup", () => {
-            isDown = false;
-            cursor = "default";
-            slider.style.cursor = cursor;
-          });
-          slider.addEventListener("mousemove", (e) => {
-            if (!isDown) return;
-            e.preventDefault();
-            const x = e.pageX - slider.offsetLeft;
-            const walk = (x - startX) * 1.5; //scroll-fast
-            slider.scrollLeft = scrollLeft - walk;
-          });
-        });
-        // Add listener for marker mouseover
-        newMarker.addListener("mouseover", () => {
-          const arrow = document.createElement("div");
-          arrow.classList.add("arrow");
-          arrow.style.transform = "rotate(" + marker.angle + "deg)";
-          const label = document.createElement("div");
-          label.classList.add("label");
-          label.innerText = marker.text;
-          const container = document.createElement("div");
-          container.classList.add("marker-container");
-          container.appendChild(arrow);
-          container.appendChild(label);
-          newMarker.setLabel({ content: container });
-        });
-        // Add listener for marker mouseout
-        newMarker.addListener("mouseout", () => {
-          newMarker.setLabel(null);
-        });
-      });
+  fetch("data.js")
+    .then((response) => response.json())
+    .then((data) => {
+      markers = data;
+      addMarkers();
     });
+}
+
+function addMarkers() {
+  markers.forEach((marker) => {
+    const icon = {
+      path: "M -2,-2 2,2 M 2,-2 -2,2",
+      strokeColor: "red",
+      strokeWeight: 4,
+    };
+    const markerObj = new google.maps.Marker({
+      position: { lat: marker.lat, lng: marker.lng },
+      map,
+      title: marker.name,
+      icon,
+    });
+
+    const content = `
+      <div>
+        <div>${marker.text}</div>
+        <div>
+          <div id="slider${marker.name}" class="slider">
+            <img src="${marker.image1}" class="image1">
+            <img src="${marker.image2}" class="image2">
+          </div>
+        </div>
+      </div>
+    `;
+
+    const infowindow = new google.maps.InfoWindow({
+      content,
+    });
+
+    markerObj.addListener("click", () => {
+      infowindow.open(map, markerObj);
+      initSlider(`#slider${marker.name}`);
+    });
+
+    markerObj.addListener("mouseover", () => {
+      const angle = marker.angle;
+      const arrowIcon = {
+        path: `M 0,0 12,0 6,12 z`,
+        fillColor: "red",
+        fillOpacity: 1,
+        strokeWeight: 0,
+        rotation: angle,
+        scale: 1.5,
+        anchor: new google.maps.Point(6, 6),
+      };
+      markerObj.setIcon(arrowIcon);
+    });
+
+    markerObj.addListener("mouseout", () => {
+      const icon = {
+        path: "M -2,-2 2,2 M 2,-2 -2,2",
+        strokeColor: "red",
+        strokeWeight: 4,
+      };
+      markerObj.setIcon(icon);
+    });
+  });
+}
+
+function initSlider(sliderSelector) {
+  const slider = document.querySelector(sliderSelector);
+  const [img1, img2] = slider.querySelectorAll("img");
+  const sliderWidth = slider.offsetWidth;
+
+  img1.style.clip = `rect(0px, ${sliderWidth / 2}px, 400px, 0px)`;
+  img2.style.clip = `rect(0px, ${sliderWidth}px, 400px, ${sliderWidth / 2}px)`;
+
+  slider.addEventListener("mousemove", (event) => {
+    const position = event.pageX - slider.offsetLeft;
+    const percentage = (position / sliderWidth) * 100;
+    img1.style.clip = `rect(0px, ${position}px, 400px, 0px)`;
+    img2.style.clip = `rect(0px, ${sliderWidth}px, 400px, ${position}px)`;
+  });
 }
