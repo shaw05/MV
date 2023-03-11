@@ -1,0 +1,31 @@
+{
+  "markers": [
+    {
+      "lat": 51.5074,
+      "lng": -0.1278,
+      "angle": 45,
+      "label": "London",
+      "image1": "image1.jpg",
+      "image2": "image2.jpg",
+      "text": "This is London"
+    },
+    {
+      "lat": 40.7128,
+      "lng": -74.0060,
+      "angle": 135,
+      "label": "New York City",
+      "image1": "image3.jpg",
+      "image2": "image4.jpg",
+      "text": "This is New York City"
+    },
+    {
+      "lat": 48.8566,
+      "lng": 2.3522,
+      "angle": 225,
+      "label": "Paris",
+      "image1": "image5.jpg",
+      "image2": "image6.jpg",
+      "text": "This is Paris"
+    }
+  ]
+}
