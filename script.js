@@ -1,65 +1,93 @@
-// Wait for the DOM to load before running the code
-document.addEventListener('DOMContentLoaded', function() {
-  
-  // Initialize the map
-  var map = L.map('map').setView([51.505, -0.09], 13);
-  
-  // Add the base tile layer
-  var tileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors'
+// Initialize and add the map
+function initMap() {
+  // The location of center
+  const center = { lat: 51.5074, lng: -0.1278 };
+  // The map, centered at center
+  const map = new google.maps.Map(document.getElementById("map"), {
+    zoom: 12,
+    center: center,
   });
-  tileLayer.addTo(map);
-  
-  // Load the marker data from the data.js file
+
+  // Add markers to the map
   fetch('data.js')
     .then(response => response.json())
     .then(data => {
-      
-      // Loop through the marker data and add markers to the map
       data.forEach(marker => {
-        
-        // Create a marker
-        var arrowIcon = L.icon({
-          iconUrl: 'arrow.png',
-          iconSize: [20, 20],
-          iconAnchor: [10, 10],
-          className: 'arrow-icon',
-          rotationAngle: marker.angle
+        const markerPos = { lat: marker.lat, lng: marker.lng };
+        const markerIcon = {
+          url: "https://developers.google.com/maps/documentation/javascript/examples/full/images/beachflag.png",
+          size: new google.maps.Size(20, 32),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(0, 32),
+        };
+        const newMarker = new google.maps.Marker({
+          position: markerPos,
+          map: map,
+          icon: markerIcon,
+          title: marker.text,
         });
-        var markerObj = L.marker([marker.lat, marker.lng], { icon: arrowIcon });
-        
-        // Add the marker to the map
-        markerObj.addTo(map);
-        
-        // Create a popup for the marker
-        var popupContent = '<div class="popup">' +
-                             '<div class="popup-images">' +
-                               '<div class="overlay">' +
-                                 '<img src="' + marker.images[0] + '">' +
-                                 '<div class="slider"></div>' +
-                                 '<img src="' + marker.images[1] + '">' +
-                               '</div>' +
-                             '</div>' +
-                             '<div class="popup-text">' + marker.text + '</div>' +
-                           '</div>';
-        markerObj.bindPopup(popupContent);
-        
-        // Initialize the slider for the popup
-        var slider = document.querySelector('.slider');
-        noUiSlider.create(slider, {
-          start: 50,
-          range: {
-            min: 0,
-            max: 100
-          }
+        // Add listener for marker click
+        newMarker.addListener("click", () => {
+          const contentString =
+            "<div id='overlay'>" +
+            "<img class='overlay-image' src='images/" +
+            marker.image1 +
+            "'/><img class='overlay-image' src='images/" +
+            marker.image2 +
+            "'/></div>";
+          const infowindow = new google.maps.InfoWindow({
+            content: contentString,
+            maxWidth: 400,
+          });
+          infowindow.open(map, newMarker);
+          const slider = document.querySelector("#overlay");
+          let isDown = false;
+          let startX;
+          let scrollLeft;
+          let cursor = "default";
+          slider.addEventListener("mousedown", (e) => {
+            isDown = true;
+            startX = e.pageX - slider.offsetLeft;
+            scrollLeft = slider.scrollLeft;
+            cursor = "grabbing";
+            slider.style.cursor = cursor;
+          });
+          slider.addEventListener("mouseleave", () => {
+            isDown = false;
+            cursor = "default";
+            slider.style.cursor = cursor;
+          });
+          slider.addEventListener("mouseup", () => {
+            isDown = false;
+            cursor = "default";
+            slider.style.cursor = cursor;
+          });
+          slider.addEventListener("mousemove", (e) => {
+            if (!isDown) return;
+            e.preventDefault();
+            const x = e.pageX - slider.offsetLeft;
+            const walk = (x - startX) * 1.5; //scroll-fast
+            slider.scrollLeft = scrollLeft - walk;
+          });
         });
-        var images = document.querySelectorAll('.popup-images img');
-        slider.noUiSlider.on('update', function(values, handle) {
-          var value = values[handle];
-          var opacity = Math.abs(value - 50) / 50;
-          images[0].style.opacity = opacity;
-          images[1].style.opacity = 1 - opacity;
+        // Add listener for marker mouseover
+        newMarker.addListener("mouseover", () => {
+          const arrow = document.createElement("div");
+          arrow.classList.add("arrow");
+          arrow.style.transform = "rotate(" + marker.angle + "deg)";
+          const label = document.createElement("div");
+          label.classList.add("label");
+          label.innerText = marker.text;
+          const container = document.createElement("div");
+          container.classList.add("marker-container");
+          container.appendChild(arrow);
+          container.appendChild(label);
+          newMarker.setLabel({ content: container });
+        });
+        // Add listener for marker mouseout
+        newMarker.addListener("mouseout", () => {
+          newMarker.setLabel(null);
         });
       });
     });
-});
+}
